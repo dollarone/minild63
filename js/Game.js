@@ -156,7 +156,6 @@ PlatformerGame.Game.prototype = {
         this.left = false;
         this.right = true;
         this.jump = false;
-        this.isJumping = false;
 
     },
 
@@ -198,7 +197,6 @@ PlatformerGame.Game.prototype = {
     //        this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
 
             // reset the players velocity 
-if (this.isJumping) {} else{ 
 
             if (this.player.body.x > 79*72) {
                 this.jump = false;
@@ -264,7 +262,6 @@ if (this.isJumping) {} else{
                 //this.player.animations.stop(null, false);// = false;
                 //this.player.frame = 52;
                 this.player.animations.play("jump_right");
-                this.isJumping = true;
             }
 
 
@@ -283,7 +280,7 @@ if (this.isJumping) {} else{
             }
 
 
-}
+
 /*
             this.creatures.forEach(function(frog) { 
                 this.frogMove(frog);
@@ -313,7 +310,7 @@ if (this.isJumping) {} else{
         }
         if (this.player.body.blocked.down) {
             this.playerCanJump = true;
-            this.isJumping = false;  
+        
         }
     },
 
