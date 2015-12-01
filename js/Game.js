@@ -8,16 +8,12 @@ PlatformerGame.Game.prototype = {
     create: function() {
 
             // NEXT: 
-            // re-enable import of items (player start pos)
-            // make the player finish the level automatically
-            // add clickable places for traps (traps=1 tower type)
-            // traps
+            // mouse select to buy/upgrade towers -- could just have a text next to it @spawn slime tower@ level 0. click again to ugprade: $40
+            // diffenent types of towers/spawners
+            // upgradable (and sellable) towers
             // waves of enemies (neverending)
-            // done with MVP
-            // moar tiles
+            // different player types (with different money yield)
             // levels
-            // upgrade towers
-
 
         
         this.sky = this.game.add.sprite(0, 0, 'sky');
@@ -25,275 +21,405 @@ PlatformerGame.Game.prototype = {
 
         this.map = this.game.add.tilemap('level1');
 
-        this.map.addTilesetImage('tiles_spritesheet', 'gameTiles');
+        this.map.addTilesetImage('grass2', 'gameTiles');
 
-        //this.blockedLayer = this.map.createLayer('objectLayer');
+        this.backgroundLayer = this.map.createLayer('backgroundLayer');
         this.blockedLayer = this.map.createLayer('blockedLayer');
-        //this.foregroundLayer = this.map.createLayer('foregroundLayer');
 
         this.map.setCollisionBetween(1, 100000, true, 'blockedLayer');
 
-        //this.blockedLayer.body.immovable = true;
+        
         this.blockedLayer.resizeWorld();
 
-        this.playerCanJump = true;
-
+        var result = this.findObjectsByType('playerStart', this.map, 'objectsLayer');
+    
+        this.spawnX = result[0].x;
+        this.spawnY = result[0].y;
+        this.players = this.game.add.group();
         this.corpses = this.game.add.group();
-/*
-        this.platforms = this.game.add.group();
-        this.platforms.enableBody = true;
+        this.spawners = this.game.add.group();
 
-        this.ground = this.platforms.create(0, this.game.world.height - 64, 'ground');
-        this.ground.body.immovable = true; // player can now stand on it
-
-        this.ledge = this.platforms.create(0, 32, 'platform');
-        this.ledge.body.immovable = true;
-
-        this.ledge = this.platforms.create(32, 32, 'platform');
-        this.ledge.body.immovable = true;
-*/
-
-
-
-        //var result = this.findObjectsByType('playerStart', this.map, 'objectsLayer');
-        //this.player = this.game.add.sprite(result[0].x + 32, result[0].y - 32, 'caveman'); //32, this.game.world.height - 150
-        this.player = this.game.add.sprite(0, 72*15 - 256, 'caveman'); //32, this.game.world.height - 150
-
-        //this.player.smoothed = false;
-        this.game.physics.arcade.enable(this.player); // player now affected by physics. SCIENCE!
-        this.game.camera.follow(this.player);
-
-        this.lastTile = this.player;
-
-        this.game.physics.arcade.gravity.y = 600;
-
-        this.player.enableBody = true;
-        this.player.body.bounce.y = 0.0; // 0.3 with bouncy shoes
-        //this.player.body.gravity.y = 300;
-        this.player.body.collideWorldBounds = false;
-        //this.player.body.setSize(128,128,-64,-128);
-        
-        this.player.body.setSize(128, 156, 0, 26);
-
-        this.player.frame = 12;
-        this.player.anchor.set(0.5);
-        this.player.scale.set(0.5);
-        // animations
-        this.player.animations.add('left', [12, 20], 10, true);
-//        this.player.animations.add('right', [0], 10, true);
-        this.player.animations.add('right', [12, 20], 10, true);
-        this.player.animations.add('jump_right', [12, 20, 52], 10, false);
-
-        this.player.animations.add('blink', [0,15,0,15,0,15,0,15,0], 9, false);
-        // [0,1,2,3,4,5,6,7,8,9,10,0,15], 1, false); //
-/*
-        this.coins = this.game.add.group();
-
-        this.coins.enableBody = true;
-
-        // create some coins
-        for (var i = 0; i < 10; i++) {
-            var coin = this.coins.create(i * 32, 0, 'coin');
-
-            coin.body.gravity.y = 300; // coins can fall down
-            coin.body.bounce.y = 0.3;
-        }
-        */
-
+        this.game.world.scale.set(0.2, 0.2);
 
         // add controls
         this.cursors = this.game.input.keyboard.createCursorKeys();
 
-//        this.createItems();
-  //      this.createCreatures();
-    //    this.creatures.add(this.boss);
-
-        this.playerMaxHealth = 3;
+        this.playerMaxHealth = 5;
         this.playerHealth = this.playerMaxHealth;
-
-        this.star = this.game.add.sprite(0, 0 , 'objects');
-        this.star.frame = 7;
-        this.star.visible = false;
-        this.star.animations.add('blink', [7,8,15], 10, false);
-        
         this.hearts = this.game.add.group();
         for(var i=0; i<5; i++) {
 
-            var heart = this.game.add.sprite(2 + (18*i), 2, 'objects');
+            var heart = this.game.add.sprite(2 + (70*i), 2, 'tiles');
             if (this.playerMaxHealth > i) {
-                heart.frame = 4;
+                heart.frame = 49;
             }
             else {
-                heart.frame = 15;
+                heart.frame = 35;
             }
 
             this.hearts.add(heart);
 
         }
         this.hearts.fixedToCamera = true;
-        this.noPain = 0;
         this.time = 100;
-
-        // add a score text
-        this.scoreText = this.game.add.text(40, 20, '              The Frog King\n              and his minions\n              have invaded\n              your country!', { fontSize: '16px', fill: '#000'});
-        this.score = 0;
-        this.scoreText.alpha = 0;
-        this.scoreText.fixedToCamera = true;
-        this.scoreText.visible = true;        
+        // add an info text
+        this.winText = this.game.add.text(900, 10, 'Congrats - you cleared all the waves!!', { fontSize: '42px', fill: '#fff'});
+        this.winText.fixedToCamera = true;
+        this.winText.visible = false;
 
         // add an info text
-        this.infoText = this.game.add.text(43, 85, 'Game Over', { fontSize: '32px', fill: '#000'});
+        this.introText = this.game.add.text(900, 10, "            Control camera with arrows\n\nClick on        boxes to build creep spawners\n\n     Don't let the players steal your flags!", { fontSize: '42px', fill: '#fff'});
+        this.introText.fixedToCamera = true;
+        this.introText.visible = true;
+        this.introBox = this.game.add.sprite(1074, 100, 'tiles');
+        this.introBox.fixedToCamera = true;
+        this.introBox.frame = 19;
+
+        
+        // add an info text
+        this.infoText = this.game.add.text(2500/2-100, 10, 'Game Over', { fontSize: '42px', fill: '#fff'});
         this.infoText.fixedToCamera = true;
         this.infoText.visible = false;
-        this.gameOver = 0;
+        this.gameOver = false;
 
-//        this.music = this.game.add.audio('theme');
-//        this.sound_land.volume = 0.5;
-  //      this.music.loop = true;
-    //    this.music.play();
+        this.waveText = this.game.add.text(1000, 200, 'Prepare', { fontSize: '52px', fill: '#fff'});
+        this.waveText.fixedToCamera = true;
+        this.waveText.visible = false;
+        this.waveNumber = 0;
 
-        //this.player.scale.x *= -1;
-        this.left = false;
-        this.right = true;
-        this.jump = false;
 
+        // add an info text
+        this.errorText = this.game.add.text(2500/2, 1250/2, 'Not enough money!', { fontSize: '32px', fill: '#000'});
+        
+        this.errorText.visible = false;
+
+        // add an info text
+        this.towerText = this.game.add.text(43, 85, 'Click again to purchase\ncreep spawner (10 gold)\n                   |', { fontSize: '32px', fill: '#000'});
+        this.towerText.visible = false;
+
+        this.music = this.game.add.audio('theme');
+        this.music.loop = true;
+        this.music.play();
+
+
+
+        this.creatures = this.game.add.group();
+        this.creatures.enableBody = true;
+
+        this.foregroundLayer = this.map.createLayer('foregroundLayer');
+
+        this.worldScale = 1;
+        this.timer = -2000;
+
+        this.wave1 = [200,300,400,500,600];
+        this.wave2 = [1500,1600];
+        // extend them somehow ... or just hardcode:
+        this.wave = [200,    300,  400,  500,  600, 
+                     3000,  3100, 3250, 3380, 3500, 3610,
+                     6000,  6050, 6100, 6300, 6350, 6555, 6666,
+                     9000,  9200, 9330, 9490, 9600, 9615, 9630, 9670, 9690,
+                     12000,12060,12120,12170,12250,12300,12400,12550,12600,12620,12635,
+                     15000,15020,15040,15070,15090,15125,15200,15261,15301,15333,15348,15363,15380,15399,
+                     18000,18014,18028,18042,18056,18070,18084,18096,18110,18124,18136,18150,18164,18178,18192,18206,18220,18234,18246,18260
+                     ];
+
+        this.waveWarning = [-300, 2500, 5500, 8500, 11500, 14500, 17500];
+
+        this.createItems();
+        this.spawnInterval = 400;
+        this.spawnStartTimes = new Array();
+
+        this.startingMoney = 40;
+        this.money = this.startingMoney;
+        this.price = 10;
+        var coin = this.game.add.sprite(2430, 0, 'tiles');
+        coin.fixedToCamera = true;
+        coin.frame = 91;
+        this.moneyText = this.game.add.text(2385, 15, '' + this.money, { fontSize: '34px', fill: '#fff'});
+        this.moneyText.fixedToCamera = true;
+        this.moneyPerDeath = 3;
+
+        this.worldScale = Phaser.Math.clamp(this.worldScale, 0.25, 2);
+        // set our world scale as needed
+        this.game.world.scale.set(this.worldScale);
+        this.towerText.bringToTop();
     },
 
     update: function() {
-
-        if (!this.player.inWorld) {
-            this.loseLife(1);
-            this.respawn();
-        }
-
-        if (this.gameOver == 1) {
-            this.state.start('Preload');
-        }
-
-        if (this.gameOver > 0) {
-            this.player.body.velocity.y = 10;
-            this.player.body.velocity.x = 0;
-            this.gameOver -= 1;
+        if (!this.gameOver) {
+            this.timer++;
         }
         else {
-
-            // collisions! player with platforms; coins with platforms
-            this.game.physics.arcade.collide(this.player, this.blockedLayer, this.resetJump, null, this);
-     //       this.game.physics.arcade.collide(this.items, this.blockedLayer);
-   //         this.game.physics.arcade.collide(this.creatures, this.blockedLayer);
- //           this.game.physics.arcade.collide(this.creatures, this.creatures);
-/*
-            this.corpses.forEach(function(corpse) {
-                this.game.physics.arcade.collide(this.player, corpse, this.resetJumpUnconditionally, null, this);
-                this.game.physics.arcade.collide(corpse, this.blockedLayer);
-                this.game.physics.arcade.collide(corpse, this.corpses);
-                this.game.physics.arcade.collide(corpse, this.creatures, this.corpseCreatureCollision, null, this);
-            }, this);
-
-            this.game.physics.arcade.overlap(this.player, this.items, this.collect, null, this);
-            this.game.physics.arcade.overlap(this.player, this.creatures, this.creatureCollision, null, this);
-*/
-            // if player overlaps a coin, call the collectCoin function
-    //        this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
-
-            // reset the players velocity 
-
-            if (this.player.body.x > 79*72) {
-                this.jump = false;
+            if (this.music.volume > 0.1 ) {
+                this.music.volume -= 0.005;
             }
-            else if (this.player.body.x > 73*72) {
-                this.jump = true;
-            }
-            else if (this.player.body.x > 50*72) {
-                this.jump = false;
-            }
-            else if (this.player.body.x > 43*72) {
-                this.jump = true;
-            }
-            else if (this.player.body.x > 22*72) {
-                this.jump = false;
-            }
-            else if (this.player.body.x > 20*72) {
-                this.jump = true;
+            else {
+                this.music.stop();
             }
 
-            this.player.body.velocity.x = 0;
+        }
 
-            if (this.cursors.left.isDown) {
-                this.left = true;
-                this.right = false;
+        if (this.timer == 19800) {
+            this.winText.visible = true;
+        }
+
+        if (this.include(this.waveWarning, this.timer)) {
+            this.introText.visible = false;
+            this.introBox.visible = false;
+            this.waveNumber++;
+            this.waveText.text = "Prepare for wave " + this.waveNumber + "!";
+            if (this.waveNumber == 7) {
+                this.waveText.text = "Prepare for the final wave!";
             }
-            else if (this.cursors.right.isDown) {
-                this.left = false;
-                this.right = true;
-            }
-            else if (this.cursors.down.isDown) {
-                this.left = false;
-                this.right = false;
-            }
+            this.waveText.visible = true
+            this.waveText.alpha = 0;
+            var tween = this.game.add.tween(this.waveText).to( { alpha: 1 }, 500, "Linear", true, 0, 4);
+            tween.yoyo(true, 500);
+        }
 
 
-            if (this.left) {
-                this.player.body.velocity.x = -300;
-                this.player.scale.setTo(-0.5,0.5);
-                if (this.playerCanTakeDamage() && this.playerCanJump) {
-                    this.player.animations.play('right');
+        if (this.include(this.wave, this.timer)) {
+            this.spawnPlayer();
+        }
+
+        this.spawnStartTimes.forEach(function(spawnStartTime) {
+            if ((this.timer - spawnStartTime) % this.spawnInterval == 0) {
+                this.spawners.forEach(function(spawner) {
+                    if (spawner["spawnStartTime"] == spawnStartTime) {
+                        this.spawnCreature(spawner.x+10, spawner.y+25);
+                    }
+                }, this);
+            }
+        }, this);
+
+        // collisions! player with platforms; creatures with platforms
+        this.game.physics.arcade.collide(this.players, this.blockedLayer, this.resetJump, null, this);
+        this.game.physics.arcade.collide(this.items, this.blockedLayer);
+        this.game.physics.arcade.collide(this.creatures, this.blockedLayer);
+        this.game.physics.arcade.overlap(this.players, this.creatures, this.creatureCollision, null, this);
+
+        this.players.forEach(function(player) {
+
+            if (player.body.y > 70*16 || player.body.x < -40) {
+                //player.kill();
+                this.loseLife(player, 1, true);
+            }
+            else if (player.body.x > 70*99) {
+                this.loseLife(player, 1, false); 
+            }
+
+            if (player.body.x > 70*90 && !player["finished"]) {
+                this.loseFlag();
+                player["finished"] = true;
+            }
+
+            var jump = false
+
+            if(this.game.rnd.integerInRange(1, 200) == 1) {
+                jump = true;
+            }
+
+            if (!jump) {
+                if (player.body.x > 82*70) {
+                    jump = false;
+                }
+                else if (player.body.x > 72*70) {
+                    jump = true;
+                }
+                else if (player.body.x > 49*70) {
+                    jump = false;
+                }
+                else if (player.body.x > 42*70) {
+                    jump = true;
+                }
+                else if (player.body.x > 22*70) {
+                    jump = false;
+                }
+                else if (player.body.x > 21*70) {
+                    jump = true;
+                }
+                else if (player.body.x > 18*70 && player.body.y < 13*70) {
+                    jump = true;
+                }
+            }
+
+            if (!jump) {
+                this.creatures.forEach(function(creature) {
+
+                    if (this.distanceBetweenTwoPoints(player, creature) < 100) {
+                        jump = true
+                    }
+                }, this);
+
+            }
+
+            player.body.velocity.x = 0;
+
+            if (player["direction"] == "left") {
+                player.body.velocity.x = -300;
+                player.scale.setTo(-0.5,0.5);
+                if (this.playerCanTakeDamage(player) && player["playerCanJump"]) {
+                    player.animations.play('left');
 
                 }
             }
-            else if (this.right) {
-                this.player.body.velocity.x = 300;
-                this.player.scale.setTo(0.5,0.5);
-                if (this.playerCanTakeDamage() && this.playerCanJump) {
-                    this.player.animations.play('right');
+            else if (player["direction"] == "right") {
+                player.body.velocity.x = 300;
+                player.scale.setTo(0.5,0.5);
+                if (this.playerCanTakeDamage(player) && player["playerCanJump"]) {
+                    player.animations.play('right');
                 }
             }
             else { // stand still
-                if (this.playerCanTakeDamage() && this.playerCanJump) {
-                    this.player.animations.currentAnim.loop = false;
-                    this.player.frame = 44;
+                if (this.playerCanTakeDamage(player) && player["playerCanJump"]) {
+                    player.animations.currentAnim.loop = false;
+                    player.frame = 44;
                 }
             }
 
             // jump
-            if ((this.cursors.up.isDown || this.jump) && this.playerCanJump) { // this.player.body.blocked.down //this.playerCanJump) { //} && this.player.body.touching.down) {
-                this.player.body.velocity.y = -512;
-                this.playerCanJump = false;
-                //this.player.animations.stop(null, false);// = false;
-                //this.player.frame = 52;
-                this.player.animations.play("jump_right");
+            if (jump && player["playerCanJump"]) { 
+                player.body.velocity.y = -512;
+                player["playerCanJump"] = false;
+                
+                player.animations.play("jump_right");
             }
 
 
-            if (!this.playerCanTakeDamage()) {
-                this.noPain -= 1;
+            if (!this.playerCanTakeDamage(player)) {
+                player["noPain"] -= 1;
             }
 
             // for some strange reason, standing on corpses give you a velocity of 6.02 
             // for some strange reason, standing on 2 corpses give you a velocity of 12.04
-            if (this.player.body.velocity.y > 13) {
-                this.playerCanJump = false;
+            if (player.body.velocity.y > 13) {
+                player["playerCanJump"] = false;
             }
 
-            if (this.player.body.velocity.y < 0) {
-                this.playerCanJump = false;
+            if (player.body.velocity.y < 0) {
+                player["playerCanJump"] = false;
             }
+        }, this);
 
-
-
-/*
-            this.creatures.forEach(function(frog) { 
-                this.frogMove(frog);
-            }, this);
-*/
+        if (this.cursors.up.isDown)
+        {
+            this.game.camera.y -= 32;
         }
+        else if (this.cursors.down.isDown)
+        {
+            this.game.camera.y += 32;
+        }
+
+        if (this.cursors.left.isDown)
+        {
+            this.game.camera.x -= 32;
+        }
+        else if (this.cursors.right.isDown)
+        {
+            this.game.camera.x += 32;
+        }
+
+        this.creatures.forEach(function(creature) {
+
+            if (creature.body.y > 70*16 || creature.body.x < -40) {
+                creature.kill();
+                
+            }
+        }, this);
     },
 
+    mouseListener : function(sprite, pointer) {
+        
 
+        // make into tower
+        if (this.selected == sprite && sprite.hasOwnProperty("special") && sprite.special == "spawn" && sprite.tower != "spawn_down") {
+            if (this.money - this.price >= 0) { // should be variable price per tower
+                this.money -= this.price;
+                this.moneyText.text = '' + this.money;
+                sprite.tower = "spawn_down";
+                sprite.frame = sprite.frame_spawn1;
+                this.towerText.visible = false;
+                this.errorText.visible = false;
+                sprite["spawnStartTime"] = this.timer+1;
+                this.spawnStartTimes.push(this.timer+1);
+                this.spawners.add(sprite);
+            }
+            else {
+                this.errorText.x = sprite.x - 2*70+35;
+                this.errorText.y = sprite.y - 3*70;
+                this.errorText.visible = true;
+            }
+        }
+        else if (sprite.tower != "spawn_down") { // TODO: remove for up/downgrades
+            // display
+            this.towerText.x = sprite.x - 2*70;
+            this.towerText.y = sprite.y - 2*70;
+            this.towerText.visible = true;
+            this.errorText.visible = false;
+        }
+        else {
+            this.towerText.visible = false;
+            this.errorText.visible = false;
+        }
 
-//-----------------------------------------------------------------------------------------------------------------
+        this.selected = sprite;
 
+      },
 
+    spawnCreature: function(x, y) {
+        var creature = this.creatures.create(x, y, 'tiles');
+        //creature.scale.setTo(4, 4);
+        //creature.y -= 48;
+        creature.frame = 92;
+        creature.body.setSize(56, 32, 4, 39);
+        creature.body.debug = true;
+        creature.body.gravity.y = 600;
+        creature.body.velocity.x = -100;
+        creature['type'] = 'boss';
+        creature.animations.add('left', [92, 50], 10, true);
+        creature.animations.play('left');
+        return creature;
+    },
+
+    spawnPlayer: function() { // type
+
+        var player = this.game.add.sprite(this.spawnX, this.spawnY,  'caveman'); 
+        this.game.physics.arcade.enable(player);
+        player.enableBody = true;
+        player.body.bounce.y = 0.0; // 0.3 with bouncy shoes
+
+        // use this instead
+        player.body.gravity.y = 600;
+        player.body.collideWorldBounds = false;
+        
+        player.body.setSize(128, 156, 0, 26);
+
+        player.frame = 12;
+        player.anchor.set(0.5);
+        player.scale.set(0.5);
+        // animations
+        player.animations.add('left', [12, 20], 10, true);
+        player.animations.add('right', [12, 20], 10, true);
+        player.animations.add('jump_right', [12, 20, 52], 10, false);
+
+        player.animations.add('blink', [20,12,20,12,20,12,20,12,20], 9, false);
+
+        this.game.physics.arcade.enable(player); 
+        player["playerCanJump"] = true;
+        player["noPain"] = 0;
+        player["direction"] = "right";
+        
+
+        this.players.add(player);
+        return player;
+    },
+
+    include: function(arr, obj) {
+        for(var i=0; i<arr.length; i++) {
+            if (arr[i] == obj) return true;
+        }
+        return false;
+    },
 
     collectCoin: function(player, coin) {
 
@@ -303,25 +429,23 @@ PlatformerGame.Game.prototype = {
     },
 
     resetJump: function(player, tile) {
-        
-        if (!this.playerCanJump && this.player.body.blocked.down) {
-            
-            //this.sound_land.play(); // sounds horrible
+    
+        if (!player["playerCanJump"] && player.body.blocked.down) {
+                
+                //this.sound_land.play(); // sounds horrible
         }
-        if (this.player.body.blocked.down) {
-            this.playerCanJump = true;
+        if (player.body.blocked.down) {
+                player["playerCanJump"] = true;
         
         }
     },
 
     resetJumpUnconditionally: function(player, tile) {
 
-        if (!this.playerCanJump) {
-    //       this.sound_crunch.volume = 0.3;
-//           this.sound_crunch.play();// sounds horrible
-  //         this.sound_land.play();
+        if (!player["playerCanJump"]) {
+    //         this.sound_land.play();
         }
-        this.playerCanJump = true;
+        player["playerCanJump"] = true;
     },
 
 
@@ -344,12 +468,13 @@ PlatformerGame.Game.prototype = {
             this.createFromTiledObject(element, this.creatures);
         }, this);
         result = this.findObjectsByType('boss', this.map, 'objectsLayer');
-        this.boss = this.creatures.create(result[0].x, result[0].y, 'objects');
+        this.boss = this.creatures.create(result[0].x, result[0].y, 'tiles');
         this.boss.scale.setTo(4, 4);
         this.boss.y -= 48;
         this.boss.frame = 1;
         this.boss['type'] = 'boss';
     },
+
 
     // find objects in a tiled layer that contains a property called "type" equal to a value
     findObjectsByType: function(type, map, layer) {
@@ -365,13 +490,24 @@ PlatformerGame.Game.prototype = {
     },
 
     createFromTiledObject: function(element, group) {
-        var sprite = group.create(element.x, element.y, 'objects');
+        var sprite = group.create(element.x, element.y, 'tiles');
         sprite.frame = parseInt(element.properties.frame);
 
         // copy all of the sprite's properties
         Object.keys(element.properties).forEach(function(key) {
             sprite[key] = element.properties[key];
         });
+        if (element.properties.special == "spawn") {
+            sprite.inputEnabled = true;
+            sprite.events.onInputDown.add(this.mouseListener, this);
+            sprite.frame_spawn1 = parseInt(element.properties.frame_spawn1);
+            sprite.frame_spawn2 = parseInt(element.properties.frame_spawn2);
+    
+        }
+        else if (element.properties.special == "flag") {
+            sprite.body.gravity.y = 0;
+            this.flag = sprite;
+        }
     },
 
     collect: function(player, collectable) {
@@ -381,7 +517,7 @@ PlatformerGame.Game.prototype = {
                     this.hearts.getAt(this.playerHealth).frame = 4;
                     this.playerHealth += 1;
                 }
-//                this.playRandomOohSound();
+
                 break;
             case 9: // gold heart
                 this.hearts.getAt(this.playerMaxHealth).frame = 5;
@@ -390,7 +526,6 @@ PlatformerGame.Game.prototype = {
                     this.hearts.getAt(this.playerHealth).frame = 4;
                     this.playerHealth += 1;
                 }
-//                this.sound_ohyeah.play();
                 break;
         }
         collectable.destroy();
@@ -399,50 +534,46 @@ PlatformerGame.Game.prototype = {
 
     creatureCollision: function(player, creature) {
         if (creature.body.touching.up && player.body.touching.down) {
-            //this.sound_crunch.volume = 0.9;
-            //this.sound_crunch.play();
             player.body.velocity.y *= -0.5;
-            this.playerCanJump = true;
-            //creature.frame = creature.frame + 1;
-            this.createCorpse(creature);
+            player["playerCanJump"] = true;
+            //this.createCorpse(creature);
             creature.destroy();
         }
         else {
-            this.loseLife(1);
-            
+            creature.destroy();
+            this.loseLife(player, 1, true);            
         }
     },
 
-    loseLife: function(amount) {
-        if (this.playerCanTakeDamage() && this.playerHealth > 0)
+    loseLife: function(player, amount, cash) {
+        if (this.playerCanTakeDamage(player) && this.playerHealth > 0 && player.alive)
         {
             this.noPain = 50;
-            this.player.animations.play('blink');
-            this.playerHealth -= amount;
-            this.hearts.getAt(this.playerHealth).frame = 5;
-            if (this.playerHealth <= 0) {
-               this.playerDied();
-               //this.playRandomDeathSound();
-           }
-           else {
-                //this.playRandomOuchSound();
-           }
+            player.kill();
+            if (cash) {
+                this.money += this.moneyPerDeath;
+                this.moneyText.text = '' + this.money;
+            }
         }
     },
 
-    playerCanTakeDamage: function(player, thing) {
-        return (this.noPain === 0);
+    loseFlag: function() {
+        this.playerHealth--;
+        this.hearts.getAt(this.playerHealth).frame = 35;
+        if (this.playerHealth <= 0) {
+            this.playerDied();
+        }
+    },
+
+    playerCanTakeDamage: function(player) {
+        return (player["noPain"] == 0);
     },
 
     playerDied: function() {
-        //console.log("death is always an option");
         this.infoText.visible = true;
-        this.gameOver = 300;
-        //this.music.stop();
+        this.flag.frame = 35;
 
-        // respawn all creatures etc
-
-
+        this.gameOver = true;
 
     },
 
@@ -456,7 +587,7 @@ PlatformerGame.Game.prototype = {
     },
 
     createCorpse: function(creature) {
-        var corpse = this.corpses.create(creature.x, creature.y + 10, 'objects');
+        var corpse = this.corpses.create(creature.x, creature.y + 10, 'tiles');
         corpse.frame = creature.frame + 1;
         this.game.physics.arcade.enable(corpse);
         corpse.body.y += 10;
@@ -470,75 +601,9 @@ PlatformerGame.Game.prototype = {
         this.star.animations.play('blink');  
     },
 
-    playRandomOuchSound: function() {
-        switch(this.game.rnd.integerInRange(1, 5)) {
-            case 1: 
-                this.sound_ouch1.play();
-                break;
-            case 2: 
-                this.sound_ouch2.play();
-                break;
-            case 3: 
-                this.sound_ouch3.play();
-                break;
-            case 4: 
-                this.sound_ouch4.play();
-                break;
-            default:
-                this.sound_ouch5.play();
-                break;
-        }
-    },
-    
-    playRandomDeathSound: function() {
-        switch(this.game.rnd.integerInRange(1, 2)) {
-            case 1: 
-                this.sound_death1.play();
-                break;
-            default:
-                this.sound_death2.play();
-                break;
-        }
-    },
-
-
-    playRandomOohSound: function() {
-        switch(this.game.rnd.integerInRange(1, 2)) {
-            case 1: 
-                this.sound_ooh1.play();
-                break;
-            default:
-                this.sound_ooh2.play();
-                break;
-        }
-    },
-
-    playRandomFrogSound: function() {
-        switch(this.game.rnd.integerInRange(1, 3)) {
-            case 1: 
-                this.sound_frog1.play();
-                break;
-            case 2: 
-                this.sound_frog2.play();
-                break;
-            default:
-                this.sound_frog3.play();
-                break;
-        }
-    },
-
-    endGame: function() {
-
-        this.scoreText.text = "The Frog King's ghost\ntells you each frog\nyou killed...\nwas one of your friends.\nTurns out...\nYou are the Monster!";
-        this.scoreText.visible = true;
-       // this.sound_laugh.play();
-
-    },
-
     corpseCreatureCollision: function(corpse, creature) {
         if (creature.body.touching.up && corpse.body.touching.down) {
-            //this.sound_crunch.volume = 1.2;
-            //this.sound_crunch.play();
+
             this.createCorpse(creature);
             creature.destroy();            
         }
@@ -552,60 +617,5 @@ PlatformerGame.Game.prototype = {
         ys = ys * ys;
 
         return Math.sqrt(xs + ys);
-    },
-
-    frogMove: function(frog) {
-
-
-        if (frog['type'] == 'boss') {
-            if (this.distanceBetweenTwoPoints(frog, this.player) < 190 && this.player.y <= frog.y + 50) {
-
-                if (this.game.rnd.integerInRange(1, 50) == 1) {
-                  //  this.sound_bossfrog.play();
-                }
-                
-            
-                if (this.player.x > frog.x) {
-                    //ghost.x += this.ghostSpeed('slow');
-                    frog.body.velocity.x = this.ghostSpeedBoss;
-                }
-                else if (this.player.x < frog.x) {
-                    frog.body.velocity.x = -this.ghostSpeedBoss;
-                    //ghost.x -= this.ghostSpeed('slow');
-                }
-
-                if (this.game.rnd.integerInRange(0, 5) === 0 && frog.body.blocked.down) {
-                    frog.body.velocity.y = -226; //this.ghostSpeedSlow;
-                    
-                }
-           }
-        }
-        else {
-            
-            if (this.distanceBetweenTwoPoints(frog, this.player) < 80 && this.player.y <= frog.y + 10) {
-
-                if (this.game.rnd.integerInRange(1, 80) == 1) {
-                   // this.playRandomFrogSound(); // ideally each frog should have 1 sound but whateves
-                    this.scoreText.visible = false;
-                }
-                
-            
-                if (this.player.x > frog.x) {
-                    //ghost.x += this.ghostSpeed('slow');
-                    frog.body.velocity.x = this.ghostSpeedSlow;
-                }
-                else if (this.player.x < frog.x) {
-                    frog.body.velocity.x = -this.ghostSpeedSlow;
-                    //ghost.x -= this.ghostSpeed('slow');
-                }
-
-                if (this.game.rnd.integerInRange(0, 5) === 0 && frog.body.blocked.down) {
-                    frog.body.velocity.y = -128; //this.ghostSpeedSlow;
-                    
-                }
-           }
-       }
-
-    }
-
+    },  
 };
