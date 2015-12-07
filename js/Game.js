@@ -37,6 +37,7 @@ PlatformerGame.Game.prototype = {
         this.spawnY = result[0].y;
         this.players = this.game.add.group();
         this.corpses = this.game.add.group();
+        this.creatures = this.game.add.group();
         this.spawners = this.game.add.group();
 
         this.game.world.scale.set(0.2, 0.2);
@@ -99,11 +100,11 @@ PlatformerGame.Game.prototype = {
 
         this.music = this.game.add.audio('theme');
         this.music.loop = true;
-        this.music.play();
+        //this.music.play();
 
 
 
-        this.creatures = this.game.add.group();
+        //this.creatures = this.game.add.group();
         this.creatures.enableBody = true;
 
         this.foregroundLayer = this.map.createLayer('foregroundLayer');
@@ -143,6 +144,9 @@ PlatformerGame.Game.prototype = {
         // set our world scale as needed
         this.game.world.scale.set(this.worldScale);
         this.towerText.bringToTop();
+
+        this.showDebug = false;
+        this.sprite = coin;
     },
 
     update: function() {
@@ -186,9 +190,11 @@ PlatformerGame.Game.prototype = {
             if ((this.timer - spawnStartTime) % this.spawnInterval == 0) {
                 this.spawners.forEach(function(spawner) {
                     if (spawner["spawnStartTime"] == spawnStartTime) {
-                        this.spawnCreature(spawner.x+10, spawner.y+25);
+                        this.spawnCreature(spawner);
+                        spawner.animations.play('spawn');
                     }
                 }, this);
+                //this.game.physics.arcade.isPaused = true;
             }
         }, this);
 
@@ -215,7 +221,7 @@ PlatformerGame.Game.prototype = {
 
             var jump = false
 
-            if(this.game.rnd.integerInRange(1, 200) == 1) {
+            if(this.game.rnd.integerInRange(1, 150) == 1) {
                 jump = true;
             }
 
@@ -246,7 +252,7 @@ PlatformerGame.Game.prototype = {
             if (!jump) {
                 this.creatures.forEach(function(creature) {
 
-                    if (this.distanceBetweenTwoPoints(player, creature) < 100) {
+                    if (this.distanceBetweenTwoPoints(player, creature) < 100 && this.game.rnd.integerInRange(1, 10) == 1) {
                         jump = true
                     }
                 }, this);
@@ -321,9 +327,13 @@ PlatformerGame.Game.prototype = {
 
         this.creatures.forEach(function(creature) {
 
+
             if (creature.body.y > 70*16 || creature.body.x < -40) {
-                creature.kill();
-                
+                creature.kill();                
+            }
+            else if (creature.body.velocity.y > 0 && creature.type == 'fish' && !creature.flipped) {
+                creature.scale.y *= -1; // TODO optimize
+                creature.flipped = true;
             }
         }, this);
     },
@@ -332,12 +342,29 @@ PlatformerGame.Game.prototype = {
         
 
         // make into tower
-        if (this.selected == sprite && sprite.hasOwnProperty("special") && sprite.special == "spawn" && sprite.tower != "spawn_down") {
+        if (this.selected == sprite && sprite.hasOwnProperty("special") && sprite.special == "spawn" && sprite.tower_level == 0) {
             if (this.money - this.price >= 0) { // should be variable price per tower
                 this.money -= this.price;
                 this.moneyText.text = '' + this.money;
-                sprite.tower = "spawn_down";
-                sprite.frame = sprite.frame_spawn1;
+                if (sprite.action == "spawn_down") {
+                    sprite.tower = "spawn_down";
+                    sprite.offset_x = 5;
+                    sprite.offset_y = 25;
+                    sprite.tower_type = 'blueblob';
+                    sprite.frame = 103;
+                    sprite.animations.add('spawn', [105, 103], 5, false);
+                }
+                else if (sprite.action == "spawn_up") {
+                    sprite.tower = "spawn_down";
+                    sprite.offset_x = 0;
+                    sprite.offset_y = -5 - 70; // -5 for offset; -70 to spawn higher up to prevent instant death
+                    sprite.tower_type = 'fish';
+                    sprite.frame = 117;
+                    sprite.animations.add('spawn', [119, 117], 5, false);
+                }
+                sprite.tower_level++;
+                
+                sprite.bringToTop();
                 this.towerText.visible = false;
                 this.errorText.visible = false;
                 sprite["spawnStartTime"] = this.timer+1;
@@ -366,18 +393,33 @@ PlatformerGame.Game.prototype = {
 
       },
 
-    spawnCreature: function(x, y) {
-        var creature = this.creatures.create(x, y, 'tiles');
+    spawnCreature: function(spawner) {
+        var creature = this.creatures.create(spawner.x + spawner.offset_x, spawner.y + spawner.offset_y, 'tiles');
         //creature.scale.setTo(4, 4);
         //creature.y -= 48;
-        creature.frame = 92;
-        creature.body.setSize(56, 32, 4, 39);
-        creature.body.debug = true;
-        creature.body.gravity.y = 600;
-        creature.body.velocity.x = -100;
-        creature['type'] = 'boss';
-        creature.animations.add('left', [92, 50], 10, true);
-        creature.animations.play('left');
+        
+        //creature.body.debug = true;
+        creature.body.gravity.y = 600; 
+
+        if (spawner.tower_type == 'blueblob') {
+            creature.frame = 92;
+            creature.body.setSize(56, 32, 4, 39);
+            creature.body.velocity.x = -100;    
+            creature.animations.add('left', [92, 50], 10, true);
+            creature.animations.play('left');
+        }
+        else if (spawner.tower_type == 'fish') {
+            creature.scale.y *= -1; // jump up first
+            creature.frame = 36;
+            creature.anchor.setTo(0, 0.7);
+            creature.body.setSize(38, 50, 18, 20);
+            creature.body.velocity.y = -600;    
+            creature.animations.add('bite', [36,8], 10, true);
+            creature.animations.play('bite');
+            creature.flipped = false;
+            creature.type = 'fish';
+            
+        }
         return creature;
     },
 
@@ -502,6 +544,7 @@ PlatformerGame.Game.prototype = {
             sprite.events.onInputDown.add(this.mouseListener, this);
             sprite.frame_spawn1 = parseInt(element.properties.frame_spawn1);
             sprite.frame_spawn2 = parseInt(element.properties.frame_spawn2);
+            sprite.tower_level = 0;
     
         }
         else if (element.properties.special == "flag") {
@@ -534,7 +577,12 @@ PlatformerGame.Game.prototype = {
 
     creatureCollision: function(player, creature) {
         if (creature.body.touching.up && player.body.touching.down) {
-            player.body.velocity.y *= -0.5;
+            if (player.body.velocity.y > 0) {
+                player.body.velocity.y *= -0.7;
+            }
+            else {
+                player.body.velocity.y *= 1.5;
+            }
             player["playerCanJump"] = true;
             //this.createCorpse(creature);
             creature.destroy();
@@ -618,4 +666,25 @@ PlatformerGame.Game.prototype = {
 
         return Math.sqrt(xs + ys);
     },  
+
+    toggle: function() {
+
+        this.showDebug = (this.showDebug) ? false : true;
+
+        if (!this.showDebug) {
+            this.game.debug.reset();
+        }
+    },
+
+    render: function() {
+
+        if (this.showDebug) {
+
+            this.creatures.forEach(function(creature) {
+                //this.game.debug.bodyInfo(creature, 132, 132);
+                this.game.debug.body(creature);
+            }, this);
+        }
+
+    },
 };
