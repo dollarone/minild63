@@ -18,6 +18,7 @@ PlatformerGame.Preload.prototype = {
         
         this.game.load.spritesheet('tiles', 'assets/images/grass2.png', 70, 70, 14*9);
         this.game.load.spritesheet('caveman', 'assets/images/spritesheet_players.png', 128, 256, 8*8);
+        this.game.load.spritesheet('tnt', 'assets/images/tnt.png', 70, 114, 3);
 
         this.game.load.audio('theme', 'assets/audio/Super_Mario_Bros_2_Gypsy_Jazz_OC_ReMix.mp3');
 

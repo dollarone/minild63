@@ -100,7 +100,7 @@ PlatformerGame.Game.prototype = {
 
         this.music = this.game.add.audio('theme');
         this.music.loop = true;
-        //this.music.play();
+        this.music.play();
 
 
 
@@ -252,7 +252,7 @@ PlatformerGame.Game.prototype = {
             if (!jump) {
                 this.creatures.forEach(function(creature) {
 
-                    if (this.distanceBetweenTwoPoints(player, creature) < 100 && this.game.rnd.integerInRange(1, 10) == 1) {
+                    if (this.distanceBetweenTwoPoints(player, creature) < 100 && this.game.rnd.integerInRange(1, 4) == 1) {
                         jump = true
                     }
                 }, this);

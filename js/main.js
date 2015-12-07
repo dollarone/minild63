@@ -1,6 +1,6 @@
 var PlatformerGame = PlatformerGame || {};
 
-PlatformerGame.game = new Phaser.Game(2500, 1250, Phaser.AUTO, 'LD33', null, false, false);
+PlatformerGame.game = new Phaser.Game(2500, 1260, Phaser.AUTO, 'LD33', null, false, false);
 
 PlatformerGame.game.state.add('Boot', PlatformerGame.Boot);
 PlatformerGame.game.state.add('Preload', PlatformerGame.Preload);

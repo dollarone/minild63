@@ -21,7 +21,7 @@ PlatformerGame.Intro.prototype = {
 
     // Here we create the ground.
     this.ground = this.game.add.sprite(0, this.game.world.height - 64, 'ground');
-    
+    this.ground.logo =  false;    
     this.platforms.add(this.ground);
 
     //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
@@ -191,7 +191,21 @@ PlatformerGame.Intro.prototype = {
     this.player.animations.add('right', [12, 20], 10, true);
     this.player.animations.add('jump_right', [12, 20, 52], 10, false);
 
-   
+
+
+    this.box = this.game.add.sprite(1230, 1082, 'tnt');
+    this.box.frame = 62;
+    this.box.anchor.set(0, 0);
+    this.game.physics.arcade.enable(this.box);
+    this.box.body.gravity.y = 300;
+    this.box.body.maxVelocity.x = 0;
+    this.box.body.mass = 10;
+    this.box.body.collideWorldBounds = true;
+    this.platforms.add(this.box);
+    this.box.body.setSize(70, 109, 0, 4);
+
+    this.box.animations.add('blow', [0,1,2], 20, false);
+
     //  We need to enable physics on the player
     this.game.physics.arcade.enable(this.player);
     this.player.body.collideWorldBounds = true;
@@ -205,7 +219,7 @@ PlatformerGame.Intro.prototype = {
     //  The score
     this.scoreText = this.game.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
     this.scoreText.visible = false;
-    this.startLogoAnimationTimer = 200; 
+    this.startLogoAnimationTimer = 1200; 
     this.scoreText.text = this.startLogoAnimationTimer;
     this.notExploded = true;
   },
@@ -229,7 +243,10 @@ PlatformerGame.Intro.prototype = {
     }
 
     //  Collide the player and the stars with the platforms
-    this.game.physics.arcade.collide(this.player, this.platforms, this.explodeLogo, null, this);
+    //this.explodeLogo, null, this);
+    this.game.physics.arcade.collide(this.player, this.platforms, this.checkForTNTOverlap, null, this);
+    this.game.physics.arcade.collide(this.box, this.platforms);
+    
 
     //  Reset the players velocity (movement)
     this.player.body.velocity.x = 0;
@@ -267,9 +284,18 @@ PlatformerGame.Intro.prototype = {
 
   },
 
-  explodeLogo : function(player, platform) {
-    if (this.notExploded && platform["logo"]) {
+  checkForTNTOverlap: function(player, tntSprite) {
+    if (player.body.touching.down && tntSprite.body.touching.up && tntSprite == this.box && this.notExploded) {
+        tntSprite.animations.play('blow');
+        tntSprite.body.setSize(70, 114-28, 0, 28);
+        this.explodeLogo();
+    }  
+  },
+
+  explodeLogo : function() {
+    if (this.notExploded) {
         this.notExploded = false;
+        this.startLogoAnimationTimer = 0; 
         this.platforms.forEach( function(platform) {
             if (platform["logo"]) {
                 platform.body.velocity.y = 4 * this.game.rnd.integerInRange(0, 50) * this.game.rnd.integerInRange(-1, 1);
