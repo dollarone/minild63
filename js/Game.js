@@ -335,6 +335,10 @@ PlatformerGame.Game.prototype = {
                 creature.scale.y *= -1; // TODO optimize
                 creature.flipped = true;
             }
+            else if (creature.body.velocity.y > 0 && creature.type == 'fireball' && !creature.flipped) {
+                creature.scale.y *= -1; // TODO optimize
+                creature.flipped = true;
+            }
         }, this);
     },
 
@@ -354,11 +358,19 @@ PlatformerGame.Game.prototype = {
                     sprite.frame = 103;
                     sprite.animations.add('spawn', [105, 103], 5, false);
                 }
-                else if (sprite.action == "spawn_up") {
+                else if (sprite.action == "spawn_up" && sprite.spawn == "fish") {
                     sprite.tower = "spawn_down";
                     sprite.offset_x = 0;
                     sprite.offset_y = -5 - 70; // -5 for offset; -70 to spawn higher up to prevent instant death
                     sprite.tower_type = 'fish';
+                    sprite.frame = 117;
+                    sprite.animations.add('spawn', [119, 117], 5, false);
+                }
+                else if (sprite.action == "spawn_up" && sprite.spawn == "fireball") {
+                    sprite.tower = "spawn_down";
+                    sprite.offset_x = 0;
+                    sprite.offset_y = -5 - 70; // -5 for offset; -70 to spawn higher up to prevent instant death
+                    sprite.tower_type = 'fireball';
                     sprite.frame = 117;
                     sprite.animations.add('spawn', [119, 117], 5, false);
                 }
@@ -418,6 +430,16 @@ PlatformerGame.Game.prototype = {
             creature.animations.play('bite');
             creature.flipped = false;
             creature.type = 'fish';
+            
+        }
+        else if (spawner.tower_type == 'fireball') {
+  //          creature.scale.y *= -1; // jump up first
+            creature.frame = 93;
+            creature.anchor.setTo(0, 0.7);
+            creature.body.setSize(20, 40, 30, 24);
+            creature.body.velocity.y = -750;    
+            creature.flipped = false;
+            creature.type = 'fireball';
             
         }
         return creature;
@@ -576,7 +598,10 @@ PlatformerGame.Game.prototype = {
     },
 
     creatureCollision: function(player, creature) {
-        if (creature.body.touching.up && player.body.touching.down) {
+        if (creature.type == 'fireball') {
+            this.loseLife(player, 1, true);
+        }
+        else if(creature.body.touching.up && player.body.touching.down) {
             if (player.body.velocity.y > 0) {
                 player.body.velocity.y *= -0.7;
             }
@@ -589,7 +614,7 @@ PlatformerGame.Game.prototype = {
         }
         else {
             creature.destroy();
-            this.loseLife(player, 1, true);            
+            this.loseLife(player, 1, true);
         }
     },
 

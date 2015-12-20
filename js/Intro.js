@@ -193,7 +193,7 @@ PlatformerGame.Intro.prototype = {
 
 
 
-    this.box = this.game.add.sprite(1230, 1082, 'tnt');
+    this.box = this.game.add.sprite(1200, 1082, 'tnt');
     this.box.frame = 62;
     this.box.anchor.set(0, 0);
     this.game.physics.arcade.enable(this.box);
